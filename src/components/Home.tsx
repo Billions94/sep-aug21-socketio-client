@@ -4,6 +4,9 @@ import { io } from 'socket.io-client'
 import { IUser } from '../interfaces/IUser'
 import IMessage from '../interfaces/IMessage'
 import { Room } from '../interfaces/Room'
+import { UserId } from '../interfaces/UserID'
+import { IHome } from '../interfaces/IHome'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const ADDRESS = 'http://localhost:3030' // <-- address of the BACKEND PROCESS
 const socket = io(ADDRESS, { transports: ['websocket'] })
@@ -25,12 +28,17 @@ const socket = io(ADDRESS, { transports: ['websocket'] })
 // 3) BE NOTIFIED WHEN ANOTHER USER CONNECTS
 // 4) ...send messages!
 
-const Home = () => {
-  const [username, setUsername] = useState('')
+
+
+const Home = ({ username, setUsername, loggedIn, setLoggedIn }: IHome) => {
   const [message, setMessage] = useState('')
-  const [loggedIn, setLoggedIn] = useState(false)
   const [onlineUsers, setOnlineUsers] = useState<IUser[]>([])
   const [chatHistory, setChatHistory] = useState<IMessage[]>([])
+  const [userId, setUserId] = useState<UserId | undefined>('')
+  console.log('we are the user id', userId)
+
+  const navigate = useNavigate()
+  const { id } = useParams()
 
   // every time this component renders, a connection gets established to the server
   // thanks to the io invocation at line 6
@@ -115,7 +123,7 @@ const Home = () => {
       timestamp: Date.now(), // <-- ms expired 01/01/1970
     }
 
-    socket.emit('sendmessage', { message: newMessage, room: room })
+    socket.emit('sendmessage', { message: newMessage, room: id })
     // this is sending my message to the server. I'm not receiving back my own message,
     // so I need to append it manually to my chat history.
     // but all the other connected clients are going to receive it back from the server!
@@ -142,7 +150,7 @@ const Home = () => {
     }
   }
 
-  const [room, setRoom] = useState<Room>('blue')
+  const [room, setRoom] = useState<Room>('')
 
   return (
     <Container fluid className='px-4'>
@@ -158,11 +166,6 @@ const Home = () => {
               onChange={(e) => setUsername(e.target.value)}
               disabled={loggedIn}
             />
-            <Button
-              className="ml-2"
-              variant={room === "blue" ? "primary" : "danger"}
-              onClick={() => setRoom(room === "blue" ? "red" : "blue")}
-            >Room</Button>
           </Form>
           {/* MIDDLE SECTION: CHAT HISTORY */}
           <ListGroup>
@@ -192,8 +195,8 @@ const Home = () => {
           <div className='mb-3'>Connected users:</div>
           <ListGroup>
             {onlineUsers.length === 0 && <ListGroupItem>No users yet!</ListGroupItem>}
-            {onlineUsers.filter(user => user.room === room).map((user) => (
-              <ListGroupItem key={user.id}>{user.username}</ListGroupItem>
+            {onlineUsers.filter(user => user.room === room).map((user, i) => (
+              <ListGroupItem onClick={() => navigate(`/dm/${user.socketId}`)} key={i}>{user.username}</ListGroupItem>
             ))}
           </ListGroup>
         </Col>

@@ -1,1 +1,1 @@
-export type Room = "blue" | "red";
+export type Room = string;
